@@ -1,0 +1,336 @@
+---
+title       : Session6
+subtitle    : 
+author      : Mandy
+job         : 
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : [mathjax, bootstrap]            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+---
+
+<style>
+strong {
+  font-weight: bold;
+  color: red;
+  font-size: 115%
+}
+</style>
+
+
+--- .segue bg:grey
+
+# Recap
+
+
+---
+
+
+## Recap
+
+You should know now:
+>  - the basic concept of analysis of variance
+>  - the usage of the command `lm()` for analysis of variance 
+>  - that `y ~ x` in R mean *y dependent on x* (formula syntax)
+>  - how the visualize anova using boxplots
+ 
+
+---
+
+
+## Exercise
+
+- load the babies data set using `read_excel()`:  
+- the column `wt` contains the birth weight in ounces; add another column `bwt` containing the birth weight in kg
+- do an one-way anova of birth weight dependent on 
+  - 1. `race` (mother's race)
+  - 2. `smoke` (mother's smoking status)
+  - 3. `number` (number of cigs smoked per day)
+
+- What are the percentages of explained variance in each model?
+- Taken separately, which of the three variables explained most of the variance of birth weight?
+- What is the mean birth weight of race mex?
+- Which level of each of the three predictors has the lowest (resp. highest) mean birth weight?
+- Visualize using `ggplot2`!
+
+
+---
+
+
+## Solution
+
+
+```{r}
+library(readxl)
+babies <- read_excel("session6dta/babies.xlsx",1)
+babies$bwt <- babies$wt/35.274
+m1 <- lm(bwt ~ race, data = babies)
+by(babies$bwt,babies$race,mean)
+
+## m1 <- lm(babies$bwt ~ babies$race)
+m2 <- lm(bwt ~ factor(smoke), data = babies)
+m3 <- lm(bwt ~ number, data = babies)
+```
+
+---
+
+
+## Solution
+
+
+```{r}
+summary(m1)
+```
+
+
+---
+
+
+## Solution
+
+
+```{r}
+summary(m1)$r.squared
+```
+
+---
+
+
+## Solution
+
+
+```{r}
+summary(m1)$r.squared
+```
+
+```{r}
+summary(m2)$r.squared
+```
+
+```{r}
+summary(m3)$r.squared
+```
+
+
+
+---
+
+
+## Solution
+
+
+```{r,warning=FALSE,fig.height=5,fig.width=13}
+library(ggplot2)
+ggplot(babies, aes(x = race, y = bwt)) +
+  geom_boxplot() +
+  stat_summary(geom = "point", fun.y = "mean")
+```
+
+
+---
+
+
+## Solution
+
+
+```{r,warning=FALSE,fig.height=5,fig.width=13}
+ggplot(babies, aes(x = smoke, y = bwt)) +
+  geom_boxplot() +
+  stat_summary(geom = "point", fun.y = "mean")
+```
+
+---
+
+
+## Solution
+
+
+```{r,warning=FALSE,fig.height=5,fig.width=13}
+ggplot(babies, aes(x = number, y = bwt)) +
+  geom_boxplot() +
+  stat_summary(geom = "point", fun.y = "mean")
+```
+
+
+---
+
+
+## Solution
+
+
+```{r}
+coef(summary(m1))
+```
+
+
+
+--- .segue bg:grey
+
+# Granova
+
+
+---
+
+
+## Granova
+
+
+- install (if not already done) and load the package `granovaGG`  
+- the following code produces a graphical representation of an anova analysis
+- try to understand the different components
+
+```{r, eval=FALSE}
+library(granovaGG)
+granovagg.1w(babies$bwt,babies$smoke)
+```
+
+
+
+--- .segue bg:grey
+
+# Recoding
+
+
+---
+
+
+## Recoding
+
+
+>  - there are different situation where it is advisable to recode variables e.g.
+>    - some characteristic is coded in numbers but a level/label combination would be more appropriate
+>    - one want to change a existing coding e.g. ja/nein to yes/no
+>    - missing values are coded as numbers and we want to transform them into *real* missings
+
+
+---
+
+
+## factors
+
+>  - a factor is a vector that contain only predefined values
+>  - it is used to store categorical data
+>  - the `levels()`-label combination of a factor defines the set of allowed values
+
+```{r}
+table(babies$sex)
+```
+
+
+```{r}
+class(babies$sex)
+```
+
+
+---
+
+
+## factors
+
+
+```{r}
+babies$sex.mf <- factor(babies$sex, 
+                        levels = c(0,1),
+                        labels = c("male","female"))
+class(babies$sex.mf)
+```
+
+
+```{r}
+table(babies$sex.mf)
+```
+
+
+---
+
+
+## factors Exercise
+
+- use `factor()` to change the `marital` and `inc` variable from numeric to factor
+  - 1 = married, 2 = legally separated, 3 = divorced, 4 = widowed, 5 = never married
+  - 0 = <2500, 1 = 2500-4999, 2 = 5000-7499, 3 = 7500-9999, ..., 9 = 15000+, 98 = unknown, 99 = not asked
+- table the two variables using `table()` and `prop.table()`; what is the percentage of <2500 amongst married and what amongst never married?
+
+
+---
+
+
+## Solution
+
+```{r}
+babies$marital <- factor(babies$marital, 
+                         levels = 1:5, 
+                         labels = c("married","legally separated",
+                                    "divorced","widowed","never married"))
+babies$inc <- factor(babies$inc,
+                     levels = c(0:9,98,99),
+                     labels = c("<2500",
+                                paste(seq(2500,20000,by = 2500),
+                                       seq(4999,22500,by = 2500),sep = "-"),
+                                "25000+","unknown","not asked"))
+```
+
+
+
+---
+
+
+## Solution
+```{r}
+addmargins(prop.table(table(babies$inc,babies$marital),2))
+```
+
+
+
+---
+
+
+## change labels
+
+
+```{r}
+babies$sex.jm <- factor(babies$sex.mf, 
+                        levels = c("male","female"),
+                        labels = c("Junge","Maedchen"))
+table(babies$sex.jm)
+```
+
+
+
+---
+
+
+## recoding
+
+>  - another kind of issue is a problem like the following:
+>  - the `drace` variable contains 11+ races plus one unknown coding
+>  - coding 0-5 means all white, 6 mex, 7 black, 8 asian, 9 and 10 mixed, 99 unknown
+
+
+```{r}
+library(car)
+babies$drace <- recode(babies$drace,
+                       '0:5="white";6="mex";7="black";
+                       8="asian";c(9,10)="mixed";99=NA')
+```
+
+
+
+---
+
+
+## Exercise
+
+- use the variables `race` and `drace` to get the percentage of mixed paires (man and woman from different races)
+
+
+---
+
+
+## Solution
+
+```{r}
+prop.table(table(babies$race == babies$drace))
+```
+
